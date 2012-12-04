@@ -1,11 +1,11 @@
 "use strict";
 function aNum(digits, integers, base){ // Returns it _zeroed
     if( !(this instanceof aNum) ) return new aNum(digits, integers, base);
-    
+
     if(typeof digits   === 'undefined')   digits = 1;                         // Decimal Length
     if(typeof integers === 'undefined') integers = 1;                           // Integer Length
     if(typeof base     === 'undefined')     base = 10;                            // Base of mathmatics
-                                
+
     if( digits < 1 || integers < 1 || base < 2 ||
         digits != Math.floor(digits) || integers != Math.floor(integers) || base != Math.floor(base)){
             throw "Invalid data given to aNum constructor! Digits: "+digits+" Integers: "+integers+" Base: "+base;
@@ -17,24 +17,14 @@ function aNum(digits, integers, base){ // Returns it _zeroed
     this.integer_length = integers;
     this.total_length   = digits+integers;
     this.base           = base;
-    this._zero();
-    
+    this._zero();                       // Will initialize the "core" array to proper length of zeroes
+
     return this;
 }
 
 ///////////////////////////////////////
 // General Private Methods
 ///////////////////////////////////////
-/*
-    Forward Traversal
-    for (var i = 0; i < this.tl; i++){
-        
-    }
-    Reverse Traversal
-    for (var i = this.tl-1; i >= 0; i--){
-        
-    }
-*/
 aNum.prototype._flip_sign = function(){
     this.sign = this.sign === 1 ? -1 : 1;
 };
@@ -50,10 +40,10 @@ aNum.prototype._copy_array = function(){
     }
     return a;
 };
-aNum.prototype._has_leading_zeroes = function(p){
-    if(!arguments) throw "No arguments passed to _any_leading_zeroes.";
-    
-    for(var i = p-1; i >= 0; i--){
+aNum.prototype._has_leading_zeroes = function(place){
+    if(!arguments)   throw "No arguments passed to _any_leading_zeroes.";
+    if(arguments[1]) throw "Too many arguments passed to _has_leading_zeroes";
+    for(var i = place; i >= 0; i--){
         if( this.core[i] !== 0 ){
             return false;
         }
@@ -107,9 +97,10 @@ aNum.prototype._trim = function(){
     this._trim_leading_zeroes();
     return true;
 };
-aNum.prototype._even = function(match){
-    var iDiff = match.integer_length - this.integer_length;
-    var dDiff = match.decimal_length - this.decimal_length;
+// makes this.core the same size as other.core
+aNum.prototype._even = function(other){
+    var iDiff = other.integer_length - this.integer_length;
+    var dDiff = other.decimal_length - this.decimal_length;
     if(iDiff > 0) this._moreIntegerPlaces(iDiff);
     if(dDiff > 0) this._moreDecimalPlaces(dDiff);
 };
@@ -125,34 +116,25 @@ aNum.prototype.copy = function(){
 };
 
 ///////////////////////////////////////
-// Casting Public Methods
+// Casting Methods Public
 ///////////////////////////////////////
 aNum.prototype.to_string = function(){
-    var string = ''; var bit = 0;
+    var string = '';
     if (this.sign == -1){ string = '-'; }
+    this._trim_leading_zeroes();
     
     for( var i = 0; i <= this.total_length-1; i++){
-        // Ignore preceding 0's
-        if(bit === 0){
-            if( this.core[i] === 0 ){
-                continue;
-            }
-            else{
-                bit = 1;
-            }
-        }
-        
         // Add decimal place
         if(i === this.integer_length){
             string += '.';
         }
-        string += this.core[i];
+        string += this.core[i].toString();
     };
 
     return string;
 };
 // Takes a aNum and returns it as a number, in base 10
-aNum.prototype.to_num = function(target){
+aNum.prototype.to_number = function(){
     // some error handling for numbers to big
     var place = -this.decimal_length;
     var result = 0;
@@ -166,20 +148,10 @@ aNum.prototype.to_num = function(target){
 // Returns an aNum equal to it in a new base
 aNum.prototype.to_base = function(n_base){
     if( n_base < 2 ) throw "Base must be greater than 2."
-    var result = new aNum(1, 1, n_base); 
-    var temp   = new aNum(1, 1, n_base);
-    
-    for (var i = 0; i < this.total_length; i++){
-        temp.set_value(this.ar[i]);
-        result.core.push(temp.core);
-        if( i === this.integer_length-1 ) result.interger_length = this.core.length;
-    }
-    result.total_length( this.core.length );
-    result.decimal_length( result.total_length - result.integer_length );
-    result.base = n_base;
-    result.sign = this.sign;
 
-    return result;
+// TBD 
+
+    return this;
 };
 
 ///////////////////////////////////////
@@ -187,17 +159,17 @@ aNum.prototype.to_base = function(n_base){
 ///////////////////////////////////////
 
 // Addition
-aNum.prototype._add_aNum = function(source){
-    var moar = source.copy();
-    this._even(source);
+aNum.prototype._add_aNum = function(input){
+    var x = input.copy();
+    this._even(x);
 
-    if(moar.sign == -1){
-        moar.invertSign();
-        return this._sub_aNum(moar);
+    if(x.sign == -1){
+        x.invertSign();
+        return this._sub_aNum(x);
     }
 
     for (var i = this.total_length-1; i >= 0; i--){
-        this.core[i] += this.core[i];
+        this.core[i] += x.core[i];
         if (this.core[i] >= this.base) {
             if(i===0) {
                 this._moreIntegerPlaces();
@@ -208,32 +180,31 @@ aNum.prototype._add_aNum = function(source){
         }
     }
     
-    this.trim();
+    this._trim();
     return this;
 };
 /* called by _add_num */
-aNum.prototype._add_to_element = function(i, moar, base, power){
-    this.core[i]    += Math.floor( moar / Math.pow(base,power) );
-    moar            -= ( this.core[i] )*Math.pow(base,power);
+aNum.prototype._add_to_element = function(i, x, base, power){
+    this.core[i]    += Math.floor( x / Math.pow(base,power) );
+    x               -= ( this.core[i] )*Math.pow(base,power);
     if(this.core[i] >= base){
         if( this._has_leading_zeroes(i) ){
             this._more_integer_places();
             i++;
         }
-        i = 1 + this._add_to_element(i-1, moar, base, power+1);
+        i = 1 + this._add_to_element(i-1, x, base, power+1);
     }
     return i;
 };
-aNum.prototype._add_num = function(source){
-    var moar = source;
-    if(source < 0){
-        moar *= -1;
-        return this._sub_num(moar);
+aNum.prototype._add_number = function(x){
+    if(x < 0){
+        x *= -1;
+        return this._sub_number(x);
     }
 
     // Get how many intiger places it takes
-    for(var iPlaces = 1; moar >= this.base; iPlaces++){
-        moar = moar/this.base;
+    for(var iPlaces = 1; x >= this.base; iPlaces++){
+        x = x/this.base;
     }
     // Add Integer places if needed
     if(iPlaces > this.integer_length){
@@ -242,10 +213,10 @@ aNum.prototype._add_num = function(source){
 
     var power = iPlaces;
     // The algorithm
-    for( var i = this.integer_length - iPlaces; moar != 0 && i <= this.total_length-1; i++){
-        if(moar <= 0) throw "Error: in _add_num. Algorithm line 1.";
+    for( var i = this.integer_length - iPlaces; x != 0 && i <= this.total_length-1; i++){
+        if(x <= 0) throw "Error: in _add_num. Algorithm line 1.";
         if(!this.core[i]) this._more_decimal_places();
-        i = this._add_to_element(i, source, this.base, power);
+        i = this._add_to_element(i, x, this.base, power);
         power--;
     }
     this._trim();
@@ -280,8 +251,8 @@ aNum.prototype.set_value = function(x){
     else if( ('number' == typeof x) || x instanceof Number ){
         this._add_num(x);
     }
-    /*else if(arg instanceof String || arg == typeof string ){
-        this.set_value( this._add_str(this, x) );
+    /*else if(x instanceof String || x == typeof string ){
+        this.set_value( this._add_str(x) );
     }*/
     else{
         throw "Argument" + x.toString() + "is not aNum, number, or string in aNum.setValue.";
@@ -296,23 +267,23 @@ aNum.prototype.set_value = function(x){
 //    - String will understand bases 2-10 and 16
 //    - If a string is written in any other base even if it comes from this programs to_string
 //      function it will not understand it.
-aNum.prototype.add = function(moar){
-    if( !moar )     { throw ".Add() must be passed numbers"; }
+aNum.prototype.add = function(x){
+    if( !x )       { throw ".Add() must be passed numbers"; }
     if( arguments[1] ){ throw "To many arguments to .add()"; }
 
-    if( moar instanceof aNum   ){
-        this._add_aNum( moar );
+    if( x instanceof aNum   ){
+        this._add_aNum( x );
     }
-    else if( source instanceof Number || source == typeof number ){
-        this._add_num( source );
+    else if( x instanceof Number || x == typeof number ){
+        this._add_number( x );
     }
-    /*else if(arg instanceof String || arg == typeof string ){
-        result = this._add_str(result, arg[i])
+    /*else if(x instanceof String || x == typeof string ){
+        result = this._add_str(x)
     }*/
     else{
-        throw "Argument"+arguments[i]+"is not aNum, number, or string in aNum.add()";
+        throw "Argument"+ x.toString() +"is not aNum, number, or string in aNum.add()";
     }
 
-    result.trim();
-    return result;
+    this._trim();
+    return this;
 };
