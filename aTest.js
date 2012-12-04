@@ -49,26 +49,26 @@ module( "aNum set_value" );
 test(" 1 ", function(){
     var a = new aNum();
     a.set_value(1);
-    strictEqual(a.core[0], 1, "1 does not equal 1");
+    strictEqual(a.core[0], 1, "should be 1.0 instead of " + a.toString() );
+    strictEqual(a.core[1], 0, "should be 1.0 instead of " + a.toString() );
 });
-/*
 test(" 0.1 ", function(){
     var a = new aNum();
     a.set_value(0.1);
-    strictEqual(a.core[0], 0, "0 of 0.1 does not equal 0");
-    strictEqual(a.core[1], 1, "1 of 0.1 does not equal 1");
+    strictEqual(a.core[0], 0, "should be 0.1 instead of " + a.toString() );
+    strictEqual(a.core[1], 1, "should be 0.1 instead of " + a.toString() );
 });
 test(" -1 ", function(){
     var a = new aNum();
     a.set_value(-1);
-    strictEqual(a.core[0], 1, "1 of -1 does not equal 1");
     strictEqual(a.sign,   -1, "-1 is not negative");
+    strictEqual(a.core[0], 1, "should be -1.0 instead of " + a.toString() );
+    strictEqual(a.core[1], 0, "should be -1.0 instead of " + a.toString() );
 });
 test(" -0.1 ", function(){
     var a = new aNum();
     a.set_value(-0.1);
-    strictEqual(a.core[0], 0, "0 of 0.1 does not equal 0");
-    strictEqual(a.core[1], 1, "1 of 0.1 does not equal 1");
     strictEqual(a.sign,   -1, "-1 is not negative");
+    strictEqual(a.core[0], 0, "should be -0.1 instead of " + a.toString() );
+    strictEqual(a.core[1], 1, "should be -0.1 instead of " + a.toString() );
 });
-*/
